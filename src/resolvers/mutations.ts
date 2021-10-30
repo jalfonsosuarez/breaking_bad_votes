@@ -1,7 +1,7 @@
 import { IResolvers } from 'graphql-tools';
 import { getCharacter, getCharacters, getVote, getVoteId } from '../lib/database-operations';
 import { Datetime } from '../lib/datetime';
-import { COLLECTIONS, CHANGE_VOTES } from '../config/constants';
+import { COLLECTIONS, CHANGE_VOTES, CHANGE_VOTE } from '../config/constants';
 
 async function response( status: boolean, message: string, db: any ) {
     return {
@@ -11,9 +11,13 @@ async function response( status: boolean, message: string, db: any ) {
     };
 }
 
-async function sendNotification( pubsub: any, db: any ) {
-    pubsub.publish( CHANGE_VOTES, { changeVotes: await getCharacters( db ) } );
+async function sendNotification( pubsub: any, db: any, id: string ) {
+    const characters: Array<object> = await getCharacters( db ); 
+    pubsub.publish( CHANGE_VOTES, { changeVotes: characters } );
+    const selectCharacter = characters.filter( ( character: any ) => character.id === id )[0];
+    pubsub.publish( CHANGE_VOTE, { changeVote: selectCharacter } );
 }
+
 
 const mutation: IResolvers = {
     Mutation: {
@@ -34,7 +38,7 @@ const mutation: IResolvers = {
 
             return await db.collection( COLLECTIONS.VOTES ).insertOne( vote )
                 .then( async () => {
-                    sendNotification( pubsub, db );
+                    sendNotification( pubsub, db, character );
                     return response( 
                         true,
                         'Voto emitido',
@@ -70,7 +74,7 @@ const mutation: IResolvers = {
                             .updateOne( { id }, { $set: { character } } )
                             .then( 
                                 async() => {
-                                    sendNotification( pubsub, db );
+                                    sendNotification( pubsub, db, character );
                                     return response(
                                         true,
                                         'Voto actualizado',
@@ -100,7 +104,7 @@ const mutation: IResolvers = {
                             .deleteOne( { id } )
                             .then( 
                                 async() => {
-                                    sendNotification( pubsub, db );
+                                    sendNotification( pubsub, db, id );
                                     return response( 
                                         true,
                                         'Voto eliminado',

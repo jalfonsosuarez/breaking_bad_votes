@@ -11,6 +11,7 @@ type Mutation {
 
 type Subscription {
     changeVotes: [Character!]!
+    changeVote( id: ID! ): Character!
 }
 
 type ResultOperation {
