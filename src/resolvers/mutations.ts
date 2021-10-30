@@ -1,7 +1,7 @@
 import { IResolvers } from 'graphql-tools';
 import { getCharacter, getCharacters, getVote, getVoteId } from '../lib/database-operations';
 import { Datetime } from '../lib/datetime';
-import { COLLECTIONS } from '../config/constants';
+import { COLLECTIONS, CHANGE_VOTES } from '../config/constants';
 
 async function response( status: boolean, message: string, db: any ) {
     return {
@@ -11,9 +11,13 @@ async function response( status: boolean, message: string, db: any ) {
     };
 }
 
+async function sendNotification( pubsub: any, db: any ) {
+    pubsub.publish( CHANGE_VOTES, { changeVotes: await getCharacters( db ) } );
+}
+
 const mutation: IResolvers = {
     Mutation: {
-        async addVote ( _: void, { character }, { db } ) {
+        async addVote ( _: void, { character }, { pubsub, db } ) {
             const selectCharacter = await getCharacter( db, character );           
             if ( selectCharacter === null || selectCharacter === undefined ) {
                 return response( 
@@ -30,6 +34,7 @@ const mutation: IResolvers = {
 
             return await db.collection( COLLECTIONS.VOTES ).insertOne( vote )
                 .then( async () => {
+                    sendNotification( pubsub, db );
                     return response( 
                         true,
                         'Voto emitido',
@@ -44,7 +49,7 @@ const mutation: IResolvers = {
 
         },
 
-        async updateVote ( _: void, { id, character }, { db } ) {
+        async updateVote ( _: void, { id, character }, { pubsub, db } ) {
             const selectCharacter = await getCharacter( db, character );           
             if ( selectCharacter === null || selectCharacter === undefined ) {
                 return response( 
@@ -65,6 +70,7 @@ const mutation: IResolvers = {
                             .updateOne( { id }, { $set: { character } } )
                             .then( 
                                 async() => {
+                                    sendNotification( pubsub, db );
                                     return response(
                                         true,
                                         'Voto actualizado',
@@ -81,7 +87,7 @@ const mutation: IResolvers = {
                             );
         },
 
-        async deleteVote( _: void, { id }, { db } ) {
+        async deleteVote( _: void, { id }, { pubsub, db } ) {
             const selectVote = await getVote( db, id );           
             if ( selectVote === null || selectVote === undefined ) {
                 return response( 
@@ -94,6 +100,7 @@ const mutation: IResolvers = {
                             .deleteOne( { id } )
                             .then( 
                                 async() => {
+                                    sendNotification( pubsub, db );
                                     return response( 
                                         true,
                                         'Voto eliminado',

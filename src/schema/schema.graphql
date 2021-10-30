@@ -9,6 +9,10 @@ type Mutation {
     deleteVote( id: ID! ): ResultOperation!
 }
 
+type Subscription {
+    changeVotes: [Character!]!
+}
+
 type ResultOperation {
     status: Boolean!
     message: String!
