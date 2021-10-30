@@ -1,0 +1,2 @@
+PORT=8000
+DATABASE="mongodb://root:123456@localhost:27017/breaking-bad-voting?authSource=admin"
