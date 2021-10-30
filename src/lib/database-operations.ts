@@ -1,4 +1,4 @@
-import { resourceLimits } from 'worker_threads';
+
 import { COLLECTIONS } from '../config/constants';
 
 export async function getCharacters( db: any ) {
